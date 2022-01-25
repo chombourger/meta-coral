@@ -1,0 +1,53 @@
+#
+# Copyright (c) Siemens AG, 2022
+#
+# Authors:
+#  Cedric Hombourger <cedric.hombourger@siemens.com>
+#
+# This file is subject to the terms and conditions of the MIT License.
+# See COPYING.MIT file in the top-level directory.
+#
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [ labeled ]
+
+env:
+  SSTATE_DIR: "cache/meta-coral"
+  CCACHE_DIR: "cache/meta-coral-ccache"
+  DL_DIR: "cache/meta-coral-dl"
+  SSTATE_CLEANUP_PERIOD: "3"
+  DL_CLEANUP_PERIOD: "3"
+
+jobs:
+  lint:
+    name: Check code for issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: tox
+        run: |
+          pip3 install --user reuse
+          reuse lint
+  tflite-amd64-packages:
+    name: Build pycoral packages for amd64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Cache
+        id: cache-meta-coral
+        uses: actions/cache@v2
+        with:
+          path: cache
+          key: cache-meta-coral
+      - name: Build packages
+        run: |
+          mkdir -p ${{env.SSTATE_DIR}} ${{env.CCACHE_DIR}} ${{env.DL_DIR}}
+          ./kas-container build kas/meta-coral.yml:kas/opt/caches-from-env.yml
